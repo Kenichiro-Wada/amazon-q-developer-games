@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ガーディアン - 地球防衛ゲーム</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px 0;
+            background: linear-gradient(to bottom, #000428, #004e92);
+            font-family: 'Courier New', monospace;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .game-title {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            position: relative;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 10px;
+            border: 2px solid #00ff00;
+        }
+
+        .game-title::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(1px 1px at 20px 15px, #fff, transparent),
+                radial-gradient(1px 1px at 40px 35px, #fff, transparent),
+                radial-gradient(1px 1px at 90px 20px, #fff, transparent),
+                radial-gradient(1px 1px at 130px 40px, #fff, transparent),
+                radial-gradient(1px 1px at 160px 15px, #fff, transparent);
+            background-repeat: repeat;
+            background-size: 200px 50px;
+            animation: sparkle 4s linear infinite;
+            opacity: 0.4;
+            z-index: -1;
+        }
+
+        @keyframes sparkle {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(200px); }
+        }
+
+        .game-title h1 {
+            font-size: 28px;
+            margin: 0;
+            background: linear-gradient(45deg, #00ff00, #00ccff, #ffff00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+            animation: titleGlow 3s ease-in-out infinite alternate;
+        }
+
+        .game-title .subtitle {
+            font-size: 14px;
+            color: #cccccc;
+            margin-top: 8px;
+            letter-spacing: 1px;
+        }
+
+        @keyframes titleGlow {
+            0% { 
+                text-shadow: 0 0 20px rgba(0, 255, 0, 0.5), 0 0 40px rgba(0, 255, 0, 0.3);
+            }
+            100% { 
+                text-shadow: 0 0 30px rgba(0, 255, 255, 0.8), 0 0 60px rgba(0, 255, 255, 0.4);
+            }
+        }
+
+        .game-layout {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .left-panel {
+            width: 250px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .right-panel {
+            width: 250px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .game-container {
+            position: relative;
+            width: 800px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hud {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #00ff00;
+        }
+
+        .hud h1 {
+            margin: 0 0 15px 0;
+            font-size: 24px;
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+            text-align: center;
+        }
+
+        .hud-item {
+            margin: 5px 0;
+            font-size: 16px;
+            display: flex;
+            justify-content: space-between;
+            min-width: 200px;
+        }
+
+        .score {
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .time {
+            color: #ffff00;
+            font-weight: bold;
+        }
+
+        .negative-score {
+            color: #ff0000;
+            font-weight: bold;
+            text-shadow: 0 0 5px #ff0000;
+        }
+
+        #gameCanvas {
+            display: block;
+            background: linear-gradient(to bottom, #000428, #004e92, #001122);
+            cursor: none;
+            width: 800px;
+            height: 100vh;
+            border: 3px solid #00ff00;
+            border-radius: 10px;
+        }
+
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            border: 4px solid #ff0000;
+            text-align: center;
+            z-index: 200;
+            display: none;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+        }
+
+        .game-over h2 {
+            font-size: 42px;
+            margin: 0 0 25px 0;
+            animation: pulse 1.5s infinite;
+        }
+
+        .language-selector {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .language-selector select {
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ff00;
+            border: 2px solid #00ff00;
+            border-radius: 5px;
+            padding: 8px 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .language-selector select:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .game-over p {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+
+        .restart-btn {
+            background: linear-gradient(45deg, #00ff00, #00cc00);
+            color: #000;
+            border: none;
+            padding: 18px 35px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 25px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 255, 0, 0.3);
+        }
+
+        .restart-btn:hover {
+            background: linear-gradient(45deg, #00cc00, #009900);
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 255, 0, 0.5);
+        }
+
+        .controls {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #00ff00;
+            font-size: 14px;
+        }
+
+        .controls h3 {
+            margin: 0 0 15px 0;
+            color: #00ff00;
+            text-align: center;
+        }
+
+        .controls p {
+            margin: 5px 0;
+        }
+
+        .mission-info {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #00ff00;
+            font-size: 14px;
+        }
+
+        .mission-info h3 {
+            margin: 0 0 15px 0;
+            color: #00ff00;
+            text-align: center;
+        }
+
+        .mission-item {
+            margin: 8px 0;
+            padding: 5px;
+            background: rgba(0, 255, 0, 0.1);
+            border-radius: 5px;
+        }
+
+        .enemy-info {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #00ff00;
+            font-size: 13px;
+        }
+
+        .enemy-info h3 {
+            margin: 0 0 15px 0;
+            color: #00ff00;
+            text-align: center;
+        }
+
+        .enemy-item {
+            margin: 3px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .warning {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            z-index: 150;
+            display: none;
+            animation: blink 0.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 言語選択 -->
+    <div class="language-selector">
+        <select id="languageSelect" onchange="changeLanguage(this.value)">
+            <option value="ja">🇯🇵 日本語</option>
+            <option value="en">🇺🇸 English</option>
+            <option value="fr">🇫🇷 Français</option>
+            <option value="es">🇪🇸 Español</option>
+            <option value="de">🇩🇪 Deutsch</option>
+            <option value="zh">🇨🇳 中文</option>
+            <option value="ru">🇷🇺 Русский</option>
+        </select>
+    </div>
+
+    <div class="game-layout">
+        <!-- 左パネル -->
+        <div class="left-panel">
+            <div class="hud">
+                <h1 data-i18n="status">📊 ステータス</h1>
+                <div class="hud-item">
+                    <span data-i18n="score">スコア:</span>
+                    <span id="score" class="score">0</span>
+                </div>
+                <div class="hud-item">
+                    <span data-i18n="timeLeft">残り時間:</span>
+                    <span id="time" class="time">180</span>
+                </div>
+                <div class="hud-item">
+                    <span data-i18n="mission">ミッション:</span>
+                    <span data-i18n="earthDefense">地球防衛</span>
+                </div>
+            </div>
+
+            <div class="controls">
+                <h3 data-i18n="controls">🎮 操作方法</h3>
+                <p data-i18n="moveLeft">← → : レーザー砲移動</p>
+                <p data-i18n="shoot">スペース : レーザー発射</p>
+                <p data-i18n="restart">R : ゲーム再開</p>
+            </div>
+
+            <div class="mission-info">
+                <h3 data-i18n="missionGoals">🎯 ミッション目標</h3>
+                <div class="mission-item" data-i18n="goal1">• 地球に落下する物体を撃墜</div>
+                <div class="mission-item" data-i18n="goal2" style="color: #ff0000; font-weight: bold;">• ⚠️ スペースプレーンは絶対撃墜禁止！</div>
+                <div class="mission-item" data-i18n="goal3">• スペースプレーンは着陸させる</div>
+                <div class="mission-item" data-i18n="goal4">• 180秒間地球を守り抜く</div>
+            </div>
+        </div>
+
+        <!-- ゲーム画面 -->
+        <div class="game-container">
+            <canvas id="gameCanvas"></canvas>
+        </div>
+
+        <!-- 右パネル -->
+        <div class="right-panel">
+            <!-- ゲームタイトル -->
+            <div class="game-title">
+                <h1 data-i18n="title">🛡️ ガーディアン 🛡️</h1>
+                <div class="subtitle" data-i18n="subtitle">- 地球防衛軍 -</div>
+                <div data-i18n="description" style="font-size: 12px; color: #888; margin-top: 10px;">
+                    地球連邦軍ガーディアン部隊<br>宇宙防衛ミッション
+                </div>
+            </div>
+
+            <div class="enemy-info">
+                <h3 data-i18n="enemyInfo">📊 敵情報</h3>
+                <div class="enemy-item"><span data-i18n="spaceDebris">宇宙ゴミ</span><span>耐久1 / +10pt</span></div>
+                <div class="enemy-item"><span data-i18n="brokenSatellite">壊れた衛星</span><span>耐久2 / +20pt</span></div>
+                <div class="enemy-item"><span data-i18n="fireball">隕石</span><span>耐久1 / +20pt</span></div>
+                <div class="enemy-item"><span data-i18n="ufo">UFO</span><span>耐久2 / +100pt</span></div>
+                <div class="enemy-item" style="color: #ff0000; font-weight: bold;"><span data-i18n="spacePlane">⚠️ スペースプレーン</span><span data-i18n="shootingProhibited">撃墜禁止！着陸:+10000</span></div>
+                <div class="enemy-item" style="color: #ff00ff;"><span data-i18n="ufoMothership">UFO母艦</span><span>耐久50 / +5000pt</span></div>
+                <div class="enemy-item" style="color: #ffffff;"><span data-i18n="spaceColony">スペースコロニー</span><span>耐久50 / +5000pt</span></div>
+                <div class="enemy-item" style="color: #666666;"><span data-i18n="asteroid">小惑星</span><span>耐久100 / +10000pt</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="game-over" id="gameOver">
+        <h2 id="gameOverTitle">🚨 MISSION FAILED 🚨</h2>
+        <p id="gameOverReason">スコアが-10000に達しました</p>
+        <p style="font-size: 20px; margin: 20px 0;"><span data-i18n="finalScore">最終スコア</span>: <span id="finalScore" style="font-weight: bold; color: #ffff00;">0</span></p>
+        <button class="restart-btn" data-i18n="restartMission" onclick="restartGame()">🚀 再ミッション開始</button>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
