@@ -381,6 +381,11 @@ class GuardianGame {
         this.laserSpeed = 12;
         this.laserCooldown = 0;
         
+        // 音楽とサウンド
+        this.bgm = null;
+        this.soundEnabled = localStorage.getItem('guardianSound') !== 'false';
+        this.musicVolume = parseFloat(localStorage.getItem('guardianMusicVolume')) || 0.3;
+        
         // 敵オブジェクト
         this.enemies = [];
         this.enemySpawnTimer = 0;
@@ -405,7 +410,225 @@ class GuardianGame {
         this.keys = {};
         
         this.initializeEventListeners();
+        this.initAudio();
         this.startGame();
+    }
+    
+    initAudio() {
+        // Web Audio APIを使用してBGMを生成
+        try {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            this.createBackgroundMusic();
+            this.createSoundEffects();
+        } catch (e) {
+            console.log('Audio not supported');
+        }
+    }
+    
+    createBackgroundMusic() {
+        // 宇宙戦争風の戦闘的BGMを生成
+        const duration = 12; // 12秒のループ
+        const sampleRate = this.audioContext.sampleRate;
+        const frameCount = sampleRate * duration;
+        
+        const audioBuffer = this.audioContext.createBuffer(1, frameCount, sampleRate);
+        const channelData = audioBuffer.getChannelData(0);
+        
+        // 宇宙戦争風の音楽を生成
+        for (let i = 0; i < frameCount; i++) {
+            const time = i / sampleRate;
+            
+            // 重厚なベース音（戦艦のエンジン音）
+            const bass1 = Math.sin(2 * Math.PI * 40 * time) * 0.15; // 低音ドローン
+            const bass2 = Math.sin(2 * Math.PI * 60 * time) * 0.12; // サブベース
+            
+            // 戦闘的なリズム（4/4拍子）
+            const beat = Math.floor(time * 2) % 2; // 2拍子
+            const rhythmIntensity = beat === 0 ? 1.2 : 0.8;
+            
+            // 緊張感のあるメロディ（短調）
+            const melody1 = Math.sin(2 * Math.PI * 220 * time) * 0.08 * Math.sin(time * 0.7) * rhythmIntensity; // A3
+            const melody2 = Math.sin(2 * Math.PI * 293.66 * time) * 0.06 * Math.sin(time * 0.5 + 1) * rhythmIntensity; // D4
+            const melody3 = Math.sin(2 * Math.PI * 349.23 * time) * 0.07 * Math.sin(time * 0.3 + 2) * rhythmIntensity; // F4
+            
+            // 戦闘的なハーモニー（不協和音）
+            const harmony1 = Math.sin(2 * Math.PI * 466.16 * time) * 0.04 * Math.sin(time * 0.4 + 3); // Bb4
+            const harmony2 = Math.sin(2 * Math.PI * 523.25 * time) * 0.05 * Math.sin(time * 0.6 + 1.5); // C5
+            
+            // レーザー音効果（高周波）
+            const laser = Math.sin(2 * Math.PI * 1760 * time) * 0.02 * Math.sin(time * 8) * Math.sin(time * 0.1);
+            
+            // 宇宙船のエンジン音（ノイズ効果）
+            const noise = (Math.random() - 0.5) * 0.03 * Math.sin(time * 0.2);
+            
+            // 戦闘の緊迫感（パルス効果）
+            const pulse = Math.sin(time * Math.PI * 4) * 0.3 + 0.7; // 4回のパルス
+            
+            // 全体のエンベロープ（戦闘の波）
+            const envelope = (Math.sin(time * Math.PI / 6) * 0.3 + 0.7) * pulse;
+            
+            // 音の合成
+            const totalSound = (bass1 + bass2 + melody1 + melody2 + melody3 + harmony1 + harmony2 + laser + noise) * envelope;
+            
+            // 音量制限とディストーション効果
+            channelData[i] = Math.tanh(totalSound * 1.2) * 0.8;
+        }
+        
+        this.bgmBuffer = audioBuffer;
+    }
+    
+    createSoundEffects() {
+        // レーザー発射音を生成
+        const duration = 0.3; // 0.3秒
+        const sampleRate = this.audioContext.sampleRate;
+        const frameCount = sampleRate * duration;
+        
+        const laserBuffer = this.audioContext.createBuffer(1, frameCount, sampleRate);
+        const channelData = laserBuffer.getChannelData(0);
+        
+        for (let i = 0; i < frameCount; i++) {
+            const time = i / sampleRate;
+            
+            // レーザー音（周波数が下降）
+            const frequency = 800 - (time * 600); // 800Hzから200Hzに下降
+            const laser = Math.sin(2 * Math.PI * frequency * time);
+            
+            // エンベロープ（急激な減衰）
+            const envelope = Math.exp(-time * 8);
+            
+            // ノイズ効果
+            const noise = (Math.random() - 0.5) * 0.1;
+            
+            channelData[i] = (laser + noise) * envelope * 0.3;
+        }
+        
+        this.laserSoundBuffer = laserBuffer;
+        
+        // 爆発音を生成
+        const explosionDuration = 0.5;
+        const explosionFrameCount = sampleRate * explosionDuration;
+        const explosionBuffer = this.audioContext.createBuffer(1, explosionFrameCount, sampleRate);
+        const explosionData = explosionBuffer.getChannelData(0);
+        
+        for (let i = 0; i < explosionFrameCount; i++) {
+            const time = i / sampleRate;
+            
+            // 爆発音（ホワイトノイズベース）
+            const noise = (Math.random() - 0.5) * 2;
+            
+            // 低音の衝撃波
+            const impact = Math.sin(2 * Math.PI * 60 * time) * Math.exp(-time * 3);
+            
+            // エンベロープ
+            const envelope = Math.exp(-time * 4);
+            
+            explosionData[i] = (noise + impact) * envelope * 0.2;
+        }
+        
+        this.explosionSoundBuffer = explosionBuffer;
+    }
+    
+    playLaserSound() {
+        if (!this.soundEnabled || !this.audioContext || !this.laserSoundBuffer) return;
+        
+        try {
+            const source = this.audioContext.createBufferSource();
+            const gain = this.audioContext.createGain();
+            
+            source.buffer = this.laserSoundBuffer;
+            gain.gain.value = this.musicVolume * 0.5; // レーザー音は少し小さく
+            
+            source.connect(gain);
+            gain.connect(this.audioContext.destination);
+            
+            source.start();
+        } catch (e) {
+            // サウンド再生エラーは無視
+        }
+    }
+    
+    playExplosionSound() {
+        if (!this.soundEnabled || !this.audioContext || !this.explosionSoundBuffer) return;
+        
+        try {
+            const source = this.audioContext.createBufferSource();
+            const gain = this.audioContext.createGain();
+            
+            source.buffer = this.explosionSoundBuffer;
+            gain.gain.value = this.musicVolume * 0.7; // 爆発音は大きめ
+            
+            source.connect(gain);
+            gain.connect(this.audioContext.destination);
+            
+            source.start();
+        } catch (e) {
+            // サウンド再生エラーは無視
+        }
+    }
+    
+    playBackgroundMusic() {
+        if (!this.soundEnabled || !this.audioContext || !this.bgmBuffer) return;
+        
+        try {
+            // 既存の音楽を停止
+            this.stopBackgroundMusic();
+            
+            // 新しい音源を作成
+            this.bgmSource = this.audioContext.createBufferSource();
+            this.bgmGain = this.audioContext.createGain();
+            
+            this.bgmSource.buffer = this.bgmBuffer;
+            this.bgmSource.loop = true;
+            this.bgmGain.gain.value = this.musicVolume;
+            
+            this.bgmSource.connect(this.bgmGain);
+            this.bgmGain.connect(this.audioContext.destination);
+            
+            this.bgmSource.start();
+        } catch (e) {
+            console.log('Could not play background music');
+        }
+    }
+    
+    stopBackgroundMusic() {
+        if (this.bgmSource) {
+            try {
+                this.bgmSource.stop();
+            } catch (e) {
+                // Already stopped
+            }
+            this.bgmSource = null;
+        }
+    }
+    
+    toggleSound() {
+        this.soundEnabled = !this.soundEnabled;
+        localStorage.setItem('guardianSound', this.soundEnabled);
+        
+        if (this.soundEnabled && this.gameRunning) {
+            this.playBackgroundMusic();
+        } else {
+            this.stopBackgroundMusic();
+        }
+        
+        this.updateSoundButton();
+    }
+    
+    setMusicVolume(volume) {
+        this.musicVolume = Math.max(0, Math.min(1, volume));
+        localStorage.setItem('guardianMusicVolume', this.musicVolume);
+        
+        if (this.bgmGain) {
+            this.bgmGain.gain.value = this.musicVolume;
+        }
+    }
+    
+    updateSoundButton() {
+        const soundButton = document.getElementById('soundToggle');
+        if (soundButton) {
+            soundButton.textContent = this.soundEnabled ? '🔊' : '🔇';
+            soundButton.title = this.soundEnabled ? 'サウンドOFF' : 'サウンドON';
+        }
     }
     
     initializeEventListeners() {
@@ -440,7 +663,7 @@ class GuardianGame {
         this.gameRunning = true;
         this.gameStartTime = Date.now();
         this.score = 0;
-        this.gameTime = 120;
+        this.gameTime = 180;
         this.enemies = [];
         this.lasers = [];
         this.particles = [];
@@ -449,6 +672,18 @@ class GuardianGame {
         this.player.y = this.canvas.height - 100;
         
         document.getElementById('gameOver').style.display = 'none';
+        
+        // BGM開始
+        if (this.soundEnabled) {
+            // ユーザーインタラクション後にAudioContextを再開
+            if (this.audioContext && this.audioContext.state === 'suspended') {
+                this.audioContext.resume().then(() => {
+                    this.playBackgroundMusic();
+                });
+            } else {
+                this.playBackgroundMusic();
+            }
+        }
         
         this.gameLoop();
     }
@@ -533,6 +768,9 @@ class GuardianGame {
                 height: 20
             });
             this.laserCooldown = 8; // クールダウン
+            
+            // レーザー効果音を再生
+            this.playLaserSound();
         }
     }
     
@@ -666,6 +904,7 @@ class GuardianGame {
                     if (enemy.hp <= 0) {
                         this.score += enemy.reward;
                         this.createExplosion(enemy.x + enemy.width/2, enemy.y + enemy.height/2, enemy.color);
+                        this.playExplosionSound(); // 爆発音を再生
                         this.enemies.splice(j, 1);
                     } else {
                         // ダメージエフェクト
@@ -1032,6 +1271,9 @@ class GuardianGame {
     endGame(reason, result = 'failed') {
         this.gameRunning = false;
         
+        // BGM停止
+        this.stopBackgroundMusic();
+        
         const gameOverElement = document.getElementById('gameOver');
         const titleElement = document.getElementById('gameOverTitle');
         const reasonElement = document.getElementById('gameOverReason');
@@ -1105,6 +1347,13 @@ window.addEventListener('load', () => {
     // DOM要素が完全に読み込まれてからUI更新
     setTimeout(() => {
         game.updateUI();
+        game.updateSoundButton();
+        
+        // ボリュームスライダーの初期値設定
+        const volumeSlider = document.getElementById('volumeSlider');
+        if (volumeSlider) {
+            volumeSlider.value = game.musicVolume;
+        }
     }, 200);
 });
 
@@ -1119,5 +1368,17 @@ function changeLanguage(lang) {
     } else {
         // ゲームがまだ初期化されていない場合は設定だけ保存
         localStorage.setItem('guardianLanguage', lang);
+    }
+}
+
+function toggleSound() {
+    if (game) {
+        game.toggleSound();
+    }
+}
+
+function setVolume(volume) {
+    if (game) {
+        game.setMusicVolume(parseFloat(volume));
     }
 }

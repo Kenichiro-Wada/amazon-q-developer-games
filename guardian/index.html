@@ -183,6 +183,10 @@
             top: 20px;
             right: 20px;
             z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
         }
 
         .language-selector select {
@@ -194,11 +198,69 @@
             font-family: 'Courier New', monospace;
             font-size: 14px;
             cursor: pointer;
+            min-width: 150px;
         }
 
         .language-selector select:focus {
             outline: none;
             box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        .language-selector option {
+            background: #000;
+            color: #00ff00;
+        }
+
+        .sound-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sound-controls button {
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ff00;
+            border: 2px solid #00ff00;
+            border-radius: 5px;
+            padding: 8px 12px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .sound-controls button:hover {
+            background: rgba(0, 255, 0, 0.1);
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+
+        .sound-controls input[type="range"] {
+            width: 80px;
+            height: 6px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .sound-controls input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #00ff00;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+        }
+
+        .sound-controls input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #00ff00;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
         }
 
         @keyframes pulse {
@@ -313,7 +375,7 @@
     </style>
 </head>
 <body>
-    <!-- 言語選択 -->
+    <!-- 言語選択とサウンドコントロール -->
     <div class="language-selector">
         <select id="languageSelect" onchange="changeLanguage(this.value)">
             <option value="ja">🇯🇵 日本語</option>
@@ -324,6 +386,10 @@
             <option value="zh">🇨🇳 中文</option>
             <option value="ru">🇷🇺 Русский</option>
         </select>
+        <div class="sound-controls">
+            <button id="soundToggle" onclick="toggleSound()">🔊</button>
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.1" value="0.3" onchange="setVolume(this.value)">
+        </div>
     </div>
 
     <div class="game-layout">
